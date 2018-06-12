@@ -1,4 +1,35 @@
+# Quorum `pwd-from-vault` Conversion
+
+This branch contains changes required to pull passwords (e.g. `blockmakerpassword`, `votepassword`) from Vault, rather than reading them directly from a command line flag.  
+
+## Motivation
+
+The current solution writes these passwords to disk, which is a security vulnerability.  Once this is merged, the passwords will never live in the shell which creates the nodes.  Instead, the node will be told Vault's address and the path of its secret, then it will use those to load the password via the Vault API client.  
+
+Ideally, we save this password into `quorum`'s memory and then reference it there, rather than asking Vault for it every time.
+
+## Key Modifications
+
+Big change here is that we're adding new behavior to the CLI.  Specifically, if the following arguments are all supplied, `quorum` will pull the requisite secrets from Vault.
+
+| Argument | Usage | Example |
+| --- | --- | --- |
+| `vaultaddr` | Specifies the URL for the running Vault server that this node should speak to. | `127.0.0.1:8020` |
+| `vaultpwpath` | Specifies the Vault path for this node's password. | `/quorum/passwords/us-east-1/1` |
+
+If either of these arguments are missing, then `quorum`'s behavior will be unchanged and one of the existing `password` arguments must be supplied.  If both of these arguments are supplied, then `quorum` will retrieve the password from Vault.
+
+## Working Questions
+
+- Tue, Jun 12:
+  - [ ] Different node types (e.g. maker, validator, observer) have different names for their account/password arguments.  Do they need that?  Could we just provide the `$ROLE` in the arguments, then make the all the "account" arguments have the same name?
+  - [ ] Will the Vault key always be `geth-pw`, no matter what node type it is?
+
+*Original README Content Below*
+
 # Quorum
+
+<a href="https://quorumslack.azurewebsites.net" target="_blank" rel="noopener"><img title="Quorum Slack" src="https://quorumslack.azurewebsites.net/badge.svg" alt="Quorum Slack" /></a>
 
 Quorum is an Ethereum-based distributed ledger protocol with transaction/contract privacy and new consensus mechanisms.
 
@@ -6,13 +37,14 @@ Quorum is a fork of [go-ethereum](https://github.com/ethereum/go-ethereum) and i
 
 Key enhancements over go-ethereum:
 
-* __Privacy__ - Quorum supports private transactions and private contracts through public/private state separation and utilising [Constellation](https://github.com/jpmorganchase/constellation), a peer-to-peer encrypted message exchange for directed transfer of private data to network participants
-* __Alternative Consensus Mechanisms__ - with no need for POW/POS in a permissioned network, Quorum instead offers multiple consensus mechanisms that are more appropriate for consortium chains:
-    * __QuorumChain__ - a new smart-contract based, majority voting consensus model
+  * __Privacy__ - Quorum supports private transactions and private contracts through public/private state separation and utilising [Constellation](https://github.com/jpmorganchase/constellation), a peer-to-peer encrypted message exchange for directed transfer of private data to network participants
+  * __Alternative Consensus Mechanisms__ - with no need for POW/POS in a permissioned network, Quorum instead offers multiple consensus mechanisms that are more appropriate for consortium chains:
     * __Raft-based Consensus__ - a consensus model for faster blocktimes, transaction finality, and on-demand block creation
-* __Peer Permissioning__ - node/peer permissioning using smart contracts, ensuring only known parties can join the network
-* __Higher Performance__ - Quorum offers significantly higher performance than public geth
+    * __Istanbul BFT__ - a PBFT-inspired consensus algorithm with transaction finality, by AMIS.
+  * __Peer Permissioning__ - node/peer permissioning using smart contracts, ensuring only known parties can join the network
+  * __Higher Performance__ - Quorum offers significantly higher performance than public geth
 
+Note: The QuorumChain consensus algorithm is not yet supported by this release.
 
 ## Architecture
 
@@ -38,7 +70,7 @@ Now that you have a fully-functioning Quorum environment set up, let's run the 7
 # (from within vagrant env, use `vagrant ssh` to enter)
 ubuntu@ubuntu-xenial:~$ cd quorum-examples/7nodes
 
-$ ./init.sh
+$ ./raft-init.sh
 # (output condensed for clarity)
 [*] Cleaning up temporary data directories
 [*] Configuring node 1
@@ -49,7 +81,7 @@ $ ./init.sh
 [*] Configuring node 6
 [*] Configuring node 7
 
-$ ./start.sh
+$ ./raft-start.sh
 [*] Starting Constellation nodes
 [*] Starting bootnode... waiting... done
 [*] Starting node 1
@@ -136,6 +168,7 @@ Further documentation can be found in the [docs](docs/) folder and on the [wiki]
 * [Raft Consensus Documentation](raft/doc.md)
 * [ZSL](https://github.com/jpmorganchase/quorum/wiki/ZSL) wiki page and [documentation](https://github.com/jpmorganchase/zsl-q/blob/master/README.md)
 * [quorum-examples](https://github.com/jpmorganchase/quorum-examples): example quorum clusters
+* [quorum-tools](https://github.com/jpmorganchase/quorum-tools): local cluster orchestration, and integration testing tool
 * [Quorum Wiki](https://github.com/jpmorganchase/quorum/wiki)
 
 ## Third Party Tools/Libraries
@@ -145,7 +178,7 @@ The following Quorum-related libraries/applications have been created by Third P
 * [Quorum-Genesis](https://github.com/davebryson/quorum-genesis) - A simple CL utility for Quorum to help populate the genesis file with voters and makers
 * [QuorumNetworkManager](https://github.com/ConsenSys/QuorumNetworkManager) - makes creating & managing Quorum networks easy
 * [web3j-quorum](https://github.com/web3j/quorum) - an extension to the web3j Java library providing support for the Quorum API
-* [Nethereum Quorum](https://github.com/Nethereum/Nethereum/tree/master/src/Nethereum.Quorum) - a .net Quorum adapter 
+* [Nethereum Quorum](https://github.com/Nethereum/Nethereum/tree/master/src/Nethereum.Quorum) - a .NET Quorum adapter
 * [ERC20 REST service](https://github.com/blk-io/erc20-rest-service) - a Quorum-supported RESTful service for creating and managing ERC-20 tokens
 * [Quorum Maker](https://github.com/synechron-finlabs/quorum-maker/tree/development) - a utility to create Quorum nodes
 
@@ -153,7 +186,7 @@ The following Quorum-related libraries/applications have been created by Third P
 
 Thank you for your interest in contributing to Quorum!
 
-Quorum is built on open source and we invite you to contribute enhancements. Upon review you will be required to complete a Contributor License Agreement (CLA) before we are able to merge. If you have any questions about the contribution process, please feel free to send an email to [quorum_info@jpmorgan.com](mailto:quorum_info@jpmorgan.com). 
+Quorum is built on open source and we invite you to contribute enhancements. Upon review you will be required to complete a Contributor License Agreement (CLA) before we are able to merge. If you have any questions about the contribution process, please feel free to send an email to [quorum_info@jpmorgan.com](mailto:quorum_info@jpmorgan.com).
 
 ## License
 
