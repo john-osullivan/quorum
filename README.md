@@ -30,9 +30,11 @@ If either of these arguments are missing, then `quorum`'s behavior will be uncha
 
 - Tue, Jun 12:
   - [ ] Different node types (e.g. maker, validator, observer) have different names for their account/password arguments.  Do they need that?  Could we just provide the `$ROLE` in the arguments, then make the all the "account" arguments have the same name?
+    - Look for `blockmakeraccount`, `voteaccount`, or `unlock` args.  There should be exactly one, error if not.
   - [ ] Will the Vault key always be `geth-pw`, no matter what node type it is?
   - [ ] Is there a better type than `cli.StringFlag` for validating URLs?
   - [ ] Do we need to support a more generalized case where more than one of the node's accounts is secured by a Vault key?  Somewhere down the road?
+    - Nope!  Don't worry about it yet.  Add an issue suggesting that we'll want that down the road.
 
 *Original README Content Below*
 

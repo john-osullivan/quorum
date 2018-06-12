@@ -309,6 +309,9 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		blockVoteKey *ecdsa.PrivateKey
 	)
 
+	// TODO: Add safety check to ensure that at least one
+	// role-based arg is supplied.
+
 	if addr := ctx.GlobalString(utils.VoteAccountFlag.Name); addr != "" {
 		addr = strings.TrimSpace(addr)
 		var passwd []string
@@ -410,4 +413,8 @@ along with geth. If not, see <http://www.gnu.org/licenses/>.
 `)
 
 	return nil
+}
+
+func roleArgExists(ctx *cli.Context) error {
+
 }
