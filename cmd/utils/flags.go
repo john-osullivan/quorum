@@ -395,14 +395,19 @@ var (
 		Usage: "Web address to a Hashicorp Vault installation holding passwords",
 		Value: "",
 	}
+	VaultPrefixFlag = cli.StringFlag{
+		Name:  "vaultprefix",
+		Usage: "Prefix where the Vault KV engine is mounted, no outer slashes. Canonically set to `quorum` in Eximchain",
+		Value: "quorum"
+	}
 	VaultPasswordPathFlag = cli.StringFlag{
 		Name:  "vaultpasswordpath",
-		Usage: "Vault path to KV store where password is kept",
+		Usage: "Vault path to where password is kept within KV engine.  No leading slash, does not include the engine's mount prefix",
 		Value: "",
 	}
-	VaultPasswordKeyFlag = cli.StringFlag{
-		Name:  "vaultpasswordkey",
-		Usage: "Keyname within KV store where password is kept. Canonically set to geth-pw in Eximchain",
+	VaultPasswordNameFlag = cli.StringFlag{
+		Name:  "vaultpasswordname",
+		Usage: "Key name within KV store where password is kept. Canonically set to `geth-pw` in Eximchain",
 		Value: "geth-pw",
 	}
 	// Raft flags

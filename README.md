@@ -15,26 +15,36 @@ Big change here is that we're adding new behavior to the CLI.  Specifically, if 
 | Argument | Usage | Default | Example |
 | --- | --- | --- | --- |
 | `vaultaddr` | Specifies the URL for the running Vault server that this node should speak to. | `""` | `127.0.0.1:8020` |
-| `vaultpwpath` | Specifies the Vault path for this node's password. | `""` | `/quorum/passwords/us-east-1/1` |
-| `vaultpwkey` | Specifies the password's keyname within the KV store at the specified path. | `"geth-pw"` | `"geth-pw"` |
+| `vaultpasswordpath` | Specifies the Vault path for this node's password. | `""` | `passwords/us-east-1/1` |
+| `vaultprefix` | Specifies the prefix where the KV engine is mounted. | `"quorum"` | `"quorum"` |
+| `vaultpasswordname` | Specifies the key name for the password within the KV store at the specified path. | `"geth-pw"` | `"geth-pw"` |
 
-If either of these arguments are missing, then `quorum`'s behavior will be unchanged and one of the existing `password` arguments must be supplied.  If both of these arguments are supplied, then `quorum` will retrieve the password from Vault.  This plan requires changes in a few places, mostly related to the `cmd` package.
+`vaultaddr` and `vaultpasswordpath` must be specified in the CLI in order to use Vault (others can use default values).  If either of these arguments are missing, then `quorum` will not try to use Vault and one of the existing `password` arguments must be supplied.  If both of these arguments are supplied, then `quorum` will retrieve the password from Vault.  This plan requires changes in a few places, mostly related to the `cmd` package.
 - [x] `cmd/utils/flags.go`: Needs entries for the new args.
+- [ ] `cmd/geth/passwords.go`: 
+  - [x] Validate whether we've got the right arguments
+  - [x] Authenticate to AWS
+  - [x] Fetch the secrets and return
+  - [ ] Test!!!
 - [ ] `cmd/geth/main.go#L309-336`: These lines handle responding to blockmaker and vote arguments.  They need to now:
   1. Look for either account argument.
-  2. Check if both Vault args are supplied.
-  3. If only one is supplied, throw an error.  If both are supplied and there is also a password supplied, throw an error.
+  2. Check if all Vault args are supplied.
+  3. If they're not all supplied, throw an error.  If
   4. If both are supplied and there is no password, then call the password fetcher function to retrieve the required password.
 
 ## Working Questions
 
 - Tue, Jun 12:
-  - [ ] Different node types (e.g. maker, validator, observer) have different names for their account/password arguments.  Do they need that?  Could we just provide the `$ROLE` in the arguments, then make the all the "account" arguments have the same name?
-    - Look for `blockmakeraccount`, `voteaccount`, or `unlock` args.  There should be exactly one, error if not.
-  - [ ] Will the Vault key always be `geth-pw`, no matter what node type it is?
-  - [ ] Is there a better type than `cli.StringFlag` for validating URLs?
-  - [ ] Do we need to support a more generalized case where more than one of the node's accounts is secured by a Vault key?  Somewhere down the road?
-    - Nope!  Don't worry about it yet.  Add an issue suggesting that we'll want that down the road.
+  - [x] Different node types (e.g. maker, validator, observer) have different names for their account/password arguments.  Do they need that?  Could we just provide the `$ROLE` in the arguments, then make the all the "account" arguments have the same name?
+    - *Look for `blockmakeraccount`, `voteaccount`, or `unlock` args.  There should be exactly one, error if not.  No need to unnecessarily change the CLI.*
+  - [x] Will the Vault key always be `geth-pw`, no matter what node type it is?
+    - *As far as we know, yup.  Make it an option with a default, just in case.*
+  - [x] Is there a better type than `cli.StringFlag` for validating URLs?
+    - *Nah, that's all good.  There's a special one for parsing directories, though.*
+  - [x] Do we need to support a more generalized case where more than one of the node's accounts is secured by a Vault key?  Somewhere down the road?
+    - *Nope!  Don't worry about it yet.  Add an issue suggesting that we'll want that down the road.*
+  - [x] We only need account passwords right at boot when we unlock them, right?  Or should we save them for future queries?
+    - *It doesn't look like they're being reused or saved anywhere after boot up.  We should be good to go.*
 
 *Original README Content Below*
 

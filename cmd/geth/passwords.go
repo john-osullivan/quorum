@@ -3,6 +3,11 @@ package main
 import (
 	cli "gopkg.in/urfave/cli.v1"
 	"github.com/ethereum/go-ethereum/cmd/utils"
+
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
+	vaultAPI "github.com/hashicorp/vault/api"
+	awsauth "github.com/hashicorp/vault/builtin/credential/aws"
 )
 
 func fetchPassword(ctx *cli.Context) (string, error){
@@ -30,17 +35,34 @@ func fetchPasswordFromCLI(ctx *cli.Context) (string, error) {
 
 func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 	if (usingVaultPassword(ctx)){
-		// Fetch our args, make our vars
-		var password []string
-		vaultAddr := ctx.GlobalString(utils.VaultAddrFlag.Name)
-		vaultPassPath := ctx.GlobalString(utils.VaultPasswordPathFlag.Name)
-		vaultPassKey := ctx.GlobalString(utils.VaultPasswordKeyFlag.Name)
-
 		// Authenticate to Vault via the AWS method
+		vaultConfig = vaultAPI.DefaultConfig()
+		vaultConfig.Address = ctx.GlobalString(utils.VaultAddrFlag.Name)
+		vaultClient := vaultAPI.NewClient(vaultConfig)
+		token, err := loginAws(vaultClient)
+		if err != nil {
+			log.Fatal(err)
+			return "", err
+		}
+		vaultClient.SetToken(token)
 
 		// Perform the query to retrieve the password value
+		vault = vaultClient.Logical()
+		secret, err := vault.Read(
+			"/" + ctx.GlobalString(utils.VaultPrefixFlag.Name) +
+			"/" + ctx.GlobalString(utils.VaultPasswordPathFlag.Name)
+		)
+		if err != nil {
+			log.Fatal(err)
+			return "", err
+		}
 
 		// Extract from response & return to caller
+		password, present := secret.Data[ctx.GlobalString(utils.VaultPasswordNameFlag.Name)]
+		if !present {
+			utils.Fatalf("fetchPasswordFromVault found a secret at specified path, but secret did not contain specified key name.")
+		}
+		return password.(string), nil
 	} else {
 		utils.Fatalf("fetchPasswordFromVault called even though CLI got a password argument.")
 	}
@@ -65,7 +87,8 @@ func usingVaultPassword(ctx *cli.Context) bool {
 	} else {
 		var vaultFlags map[cli.StringFlag]string{
 			utils.VaultAddrFlag: ctx.GlobalString(utils.VaultAddrFlag.Name),
-			utils.VaultPasswordKeyFlag: ctx.GlobalString(utils.VaultPasswordKeyFlag.Name),
+			utils.VaultPrefixFlag: ctx.GlobalString(utils.VaultPrefixFlag.Name)
+			utils.VaultPasswordNameFlag: ctx.GlobalString(utils.VaultPasswordNameFlag.Name),
 			utils.VaultPasswordPathFlag: ctx.GlobalString(utils.VaultPasswordPathFlag.Name),
 		}
 		var missingFlags []string = make([]string)
@@ -73,8 +96,57 @@ func usingVaultPassword(ctx *cli.Context) bool {
 			if (val == "") { missingFlags = append(missingFlags, flag.Name) }
 		}
 		if (len(missingFlags) > 0) {
-			utils.Fatalf("No account password specified, but missing required for retrieving password from Vault.  Please supply: %v",missingFlags)
+			utils.Fatalf("No account password specified, but missing flags required for retrieving password from Vault.  Please supply: %v",missingFlags)
 		}
 		return true
 	}
+}
+
+// Expects to be running in EC2
+func getIAMRole() (string, error) {
+	svc := ec2metadata.New(session.New())
+	iam, err := svc.IAMInfo()
+	if err != nil {
+		return "", err
+	}
+	// Our instance profile conveniently has the same name as the role
+	profile := iam.InstanceProfileArn
+	splitArn := strings.Split(profile, "/")
+	if len(splitArn) < 2 {
+		return "", fmt.Errorf("no / character found in instance profile ARN")
+	}
+	role := splitArn[1]
+	return role, nil
+}
+
+func loginAws(v *vault.Client) (string, error) {
+	loginData, err := awsauth.GenerateLoginData("", "", "", "")
+	if err != nil {
+		return "", err
+	}
+	if loginData == nil {
+		return "", fmt.Errorf("got nil response from GenerateLoginData")
+	}
+
+	role, err := getIAMRole()
+	if err != nil {
+		return "", err
+	}
+	loginData["role"] = role
+
+	path := "auth/aws/login"
+
+	secret, err := v.Logical().Write(path, loginData)
+	if err != nil {
+		return "", err
+	}
+	if secret == nil {
+		return "", fmt.Errorf("empty response from credential provider")
+	}
+	if secret.Auth == nil {
+		return "", fmt.Errorf("auth secret has no auth data")
+	}
+
+	token := secret.Auth.ClientToken
+	return token, nil
 }
