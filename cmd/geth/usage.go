@@ -97,6 +97,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "VAULT",
+		Flags: []cli.Flag{
+			utils.VaultAddrFlag,
+			utils.VaultPasswordPathFlag,
+			utils.VaultPasswordKeyFlag,
+		}
+	}
+	{
 		Name: "RAFT",
 		Flags: []cli.Flag{
 			utils.RaftModeFlag,
