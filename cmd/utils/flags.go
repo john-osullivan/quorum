@@ -389,6 +389,22 @@ var (
 		Usage: "Path of thr constellation private config",
 		Value: "",
 	}
+	// Vault flags
+	VaultAddrFlag = cli.StringFlag{
+		Name:  "vaultaddr",
+		Usage: "Web address to a Hashicorp Vault installation holding passwords",
+		Value: "",
+	}
+	VaultPasswordPathFlag = cli.StringFlag{
+		Name:  "vaultpasswordpath",
+		Usage: "Vault path to KV store where password is kept",
+		Value: "",
+	}
+	VaultPasswordKeyFlag = cli.StringFlag{
+		Name:  "vaultpasswordkey",
+		Usage: "Keyname within KV store where password is kept. Canonically set to geth-pw in Eximchain",
+		Value: "geth-pw",
+	}
 	// Raft flags
 	RaftModeFlag = cli.BoolFlag{
 		Name:  "raft",

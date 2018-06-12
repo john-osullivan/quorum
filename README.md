@@ -10,20 +10,28 @@ Ideally, we save this password into `quorum`'s memory and then reference it ther
 
 ## Key Modifications
 
-Big change here is that we're adding new behavior to the CLI.  Specifically, if the following arguments are all supplied, `quorum` will pull the requisite secrets from Vault.
+Big change here is that we're adding new behavior to the CLI.  Specifically, if the following arguments are all supplied, `quorum` will pull the requisite secrets from Vault.  Both default to empty strings.
 
-| Argument | Usage | Example |
+| Argument | Usage | Default | Example |
 | --- | --- | --- |
-| `vaultaddr` | Specifies the URL for the running Vault server that this node should speak to. | `127.0.0.1:8020` |
-| `vaultpwpath` | Specifies the Vault path for this node's password. | `/quorum/passwords/us-east-1/1` |
+| `vaultaddr` | Specifies the URL for the running Vault server that this node should speak to. | `""` | `127.0.0.1:8020` |
+| `vaultpwpath` | Specifies the Vault path for this node's password. | `""` | `/quorum/passwords/us-east-1/1` |
+| `vaultpwkey` | Specifies the password's keyname within the KV store at the specified path. | `"geth-pw"` | `"geth-pw"` |
 
-If either of these arguments are missing, then `quorum`'s behavior will be unchanged and one of the existing `password` arguments must be supplied.  If both of these arguments are supplied, then `quorum` will retrieve the password from Vault.
+If either of these arguments are missing, then `quorum`'s behavior will be unchanged and one of the existing `password` arguments must be supplied.  If both of these arguments are supplied, then `quorum` will retrieve the password from Vault.  This plan requires changes in a few places, mostly related to the `cmd` package.
+- [x] `cmd/utils/flags.go`: Needs entries for the new args.
+- [ ] `cmd/geth/main.go#L309-336`: These lines handle responding to blockmaker and vote arguments.  They need to now:
+  1. Look for either account argument.
+  2. Check if both Vault args are supplied.
+  3. If only one is supplied, throw an error.  If both are supplied and there is also a password supplied, throw an error.
+  4. If both are supplied and there is no password, then call the password fetcher function to retrieve the required password.
 
 ## Working Questions
 
 - Tue, Jun 12:
   - [ ] Different node types (e.g. maker, validator, observer) have different names for their account/password arguments.  Do they need that?  Could we just provide the `$ROLE` in the arguments, then make the all the "account" arguments have the same name?
   - [ ] Will the Vault key always be `geth-pw`, no matter what node type it is?
+  - [ ] Is there a better type than `cli.StringFlag` for validating URLs?
 
 *Original README Content Below*
 
