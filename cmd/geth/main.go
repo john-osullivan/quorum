@@ -310,35 +310,28 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		blockVoteKey *ecdsa.PrivateKey
 	)
 
-	// TODO: Add safety check to ensure that at least one
-	// role-based arg is supplied.
-
-	if addr := ctx.GlobalString(utils.VoteAccountFlag.Name); addr != "" {
-		addr = strings.TrimSpace(addr)
-		var passwd []string
-		if ctx.GlobalIsSet(utils.VoteAccountPasswordFlag.Name) {
-			passwd = append(passwd, ctx.GlobalString(utils.VoteAccountPasswordFlag.Name))
-		}
-
-		unlockAccount(ctx, accman, addr, 0, passwd)
-		// unlockAccounts fatals in case the account could not be unlocked
-		voteKey, err = accman.Key(common.HexToAddress(addr))
-		if err != nil {
-			utils.Fatalf("Unable to unlock vote key: %v", err)
-		}
+	usingVoterAcct := ctx.GlobalIsSet(utils.VoteAccountFlag.Name)
+	usingBlockMakerAcct := ctx.GlobalIsSet(utils.VoteBlockMakerAccountFlag.Name)
+	if (len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct){
+		utils.Fatalf("Was not provided an `unlock`, `voteaccount`, or `blockmakeraccount` flag, cannot launch.")
+	} 
+	var addr string
+	if (usingVoterAcct){
+		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteAccountFlag.Name))
+	} else if (usingBlockMakerAcct){
+		addr = strings.TrimSpace(tx.GlobalString(utils.VoteBlockMakerAccountFlag.Name))
 	}
-
-	if addr := ctx.GlobalString(utils.VoteBlockMakerAccountFlag.Name); addr != "" {
-		addr = strings.TrimSpace(addr)
+	if (usingBlockMakerAcct || usingVoterAcct){
 		var passwd []string
-		if ctx.GlobalIsSet(utils.VoteBlockMakerAccountPasswordFlag.Name) {
-			passwd = append(passwd, ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name))
+		passwd = append(passwd, fetchPassword(ctx))
+		unlockAccount(ctx, accman, addr, 0 passwd)
+		if usingBlockMakerAcct {
+			blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
+		} else {
+			voteKey, err = accman.Key(common.HexToAddress(addr))
 		}
-		unlockAccount(ctx, accman, addr, 0, passwd)
-		// unlockAccounts fatals in case the account could not be unlocked
-		blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
 		if err != nil {
-			utils.Fatalf("Unable to unlock block maker key: %v", err)
+			utils.Fatalf("Unable to unlock vote or block maker key: %v", err)
 		}
 	}
 
