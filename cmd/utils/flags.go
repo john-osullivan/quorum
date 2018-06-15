@@ -398,7 +398,7 @@ var (
 	VaultPrefixFlag = cli.StringFlag{
 		Name:  "vaultprefix",
 		Usage: "Prefix where the Vault KV engine is mounted, no outer slashes. Canonically set to `quorum` in Eximchain",
-		Value: "quorum"
+		Value: "quorum",
 	}
 	VaultPasswordPathFlag = cli.StringFlag{
 		Name:  "vaultpasswordpath",

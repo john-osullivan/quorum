@@ -312,19 +312,23 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	usingVoterAcct := ctx.GlobalIsSet(utils.VoteAccountFlag.Name)
 	usingBlockMakerAcct := ctx.GlobalIsSet(utils.VoteBlockMakerAccountFlag.Name)
-	if (len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct){
+	if len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct {
 		utils.Fatalf("Was not provided an `unlock`, `voteaccount`, or `blockmakeraccount` flag, cannot launch.")
-	} 
-	var addr string
-	if (usingVoterAcct){
-		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteAccountFlag.Name))
-	} else if (usingBlockMakerAcct){
-		addr = strings.TrimSpace(tx.GlobalString(utils.VoteBlockMakerAccountFlag.Name))
 	}
-	if (usingBlockMakerAcct || usingVoterAcct){
+	var addr string
+	if usingVoterAcct {
+		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteAccountFlag.Name))
+	} else if usingBlockMakerAcct {
+		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountFlag.Name))
+	}
+	if usingBlockMakerAcct || usingVoterAcct {
 		var passwd []string
-		passwd = append(passwd, fetchPassword(ctx))
-		unlockAccount(ctx, accman, addr, 0 passwd)
+		fetchedPass, err := fetchPassword(ctx)
+		if err != nil {
+			utils.Fatalf("Unable to fetch account password: %v", err)
+		}
+		passwd = append(passwd, fetchedPass)
+		unlockAccount(ctx, accman, addr, 0, passwd)
 		if usingBlockMakerAcct {
 			blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
 		} else {
@@ -407,8 +411,4 @@ along with geth. If not, see <http://www.gnu.org/licenses/>.
 `)
 
 	return nil
-}
-
-func roleArgExists(ctx *cli.Context) error {
-
 }

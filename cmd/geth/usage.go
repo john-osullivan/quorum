@@ -103,8 +103,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.VaultPrefixFlag,
 			utils.VaultPasswordPathFlag,
 			utils.VaultPasswordNameFlag,
-		}
-	}
+		},
+	},
 	{
 		Name: "RAFT",
 		Flags: []cli.Flag{
