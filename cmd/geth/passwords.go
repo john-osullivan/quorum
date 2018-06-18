@@ -54,18 +54,19 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 
 		// Perform the query to retrieve the password value
 		vault := vaultClient.Logical()
-		secret, err := vault.Read(
-			"/" + ctx.GlobalString(utils.VaultPrefixFlag.Name) +
-				"/" + ctx.GlobalString(utils.VaultPasswordPathFlag.Name))
+		fullSecretPath := "/" + ctx.GlobalString(utils.VaultPrefixFlag.Name) +
+			"/" + ctx.GlobalString(utils.VaultPasswordPathFlag.Name)
+		secret, err := vault.Read(fullSecretPath)
 		if err != nil {
 			log.Fatal(err)
 			return "", err
 		}
 
 		// Extract from response & return to caller
-		password, present := secret.Data[ctx.GlobalString(utils.VaultPasswordNameFlag.Name)]
+		keyname := ctx.GlobalString(utils.VaultPasswordNameFlag.Name)
+		password, present := secret.Data[keyname]
 		if !present {
-			utils.Fatalf("fetchPasswordFromVault found a secret at specified path, but secret did not contain specified key name.")
+			utils.Fatalf("fetchPasswordFromVault found a secret at specified path (%v), but secret did not contain specified key name (%v). Secret was : %v", fullSecretPath, keyname, secret.Data)
 		}
 		return password.(string), nil
 	} else {
@@ -74,13 +75,15 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 	}
 }
 
+func cliVal(ctx *cli.Context)
+
 func usingVaultPassword(ctx *cli.Context) bool {
 	passwordFlags := map[cli.StringFlag]string{
-		utils.VoteAccountPasswordFlag:           ctx.GlobalString(utils.VoteAccountPasswordFlag.Name),
-		utils.VoteBlockMakerAccountPasswordFlag: ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name),
-		utils.PasswordFileFlag:                  ctx.GlobalString(utils.PasswordFileFlag.Name),
+		utils.VoteAccountPasswordFlag:           strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)),
+		utils.VoteBlockMakerAccountPasswordFlag: strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name)),
+		utils.PasswordFileFlag:                  strings.TrimSpace(ctx.GlobalString(utils.PasswordFileFlag.Name)),
 	}
-	var setPassFlags []string = make([]string, 3)
+	setPassFlags := make([]string, 0)
 	for flag, val := range passwordFlags {
 		if val != "" {
 			setPassFlags = append(setPassFlags, flag.Name)
@@ -90,17 +93,17 @@ func usingVaultPassword(ctx *cli.Context) bool {
 		if len(setPassFlags) == 1 {
 			return false
 		} else {
-			utils.Fatalf("Too many password flags have been set.  Only one of the following should be supplied: %v", setPassFlags)
+			utils.Fatalf("Too many (%v) password flags have been set.  Only one of the following should be supplied: %v", len(setPassFlags), setPassFlags)
 			return false
 		}
 	} else {
 		vaultFlags := map[cli.StringFlag]string{
-			utils.VaultAddrFlag:         ctx.GlobalString(utils.VaultAddrFlag.Name),
-			utils.VaultPrefixFlag:       ctx.GlobalString(utils.VaultPrefixFlag.Name),
-			utils.VaultPasswordNameFlag: ctx.GlobalString(utils.VaultPasswordNameFlag.Name),
-			utils.VaultPasswordPathFlag: ctx.GlobalString(utils.VaultPasswordPathFlag.Name),
+			utils.VaultAddrFlag:         strings.TrimSpace(ctx.GlobalString(utils.VaultAddrFlag.Name)),
+			utils.VaultPrefixFlag:       strings.TrimSpace(ctx.GlobalString(utils.VaultPrefixFlag.Name)),
+			utils.VaultPasswordNameFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordNameFlag.Name)),
+			utils.VaultPasswordPathFlag: strings.TrimSpace(ctx.GlobalString(utils.VaultPasswordPathFlag.Name)),
 		}
-		var missingFlags []string = make([]string, 3)
+		missingFlags := make([]string, 0)
 		for flag, val := range vaultFlags {
 			if val == "" {
 				missingFlags = append(missingFlags, flag.Name)

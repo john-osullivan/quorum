@@ -2666,12 +2666,6 @@
 			"revisionTime": "2018-06-11T16:35:41Z"
 		},
 		{
-			"checksumSHA1": "EFv2fHTe/0194O+Zs+z8wp+GQLk=",
-			"path": "golang.org/x/net/context/ctxhttp",
-			"revision": "db08ff08e8622530d9ed3a0e8ac279f6d4c02196",
-			"revisionTime": "2018-06-11T16:35:41Z"
-		},
-		{
 			"checksumSHA1": "qOa9pBJobDd84kPieoV1JoTUUV0=",
 			"path": "golang.org/x/net/http/httpguts",
 			"revision": "db08ff08e8622530d9ed3a0e8ac279f6d4c02196",
