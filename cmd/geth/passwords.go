@@ -64,7 +64,7 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 		if !present {
 			utils.Fatalf("fetchPasswordFromVault found a secret at specified path (%v), but secret did not contain specified key name (%v). Secret was : %v", fullSecretPath, keyname, secret.Data)
 		}
-		return password.(string)[1 : len(password.(string))-1], nil
+		return password.(string), nil
 	}
 	utils.Fatalf("fetchPasswordFromVault called even though CLI got a password argument.")
 	return "", nil
