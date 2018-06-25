@@ -17,23 +17,19 @@ import (
 func fetchPassword(ctx *cli.Context) (string, error) {
 	if usingVaultPassword(ctx) {
 		return fetchPasswordFromVault(ctx)
-	} else {
-		return fetchPasswordFromCLI(ctx)
 	}
+	return fetchPasswordFromCLI(ctx)
 }
 
 func fetchPasswordFromCLI(ctx *cli.Context) (string, error) {
-	accountPass := ctx.GlobalString(utils.VoteAccountPasswordFlag.Name)
-	blockPass := ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name)
-	filePass := ctx.GlobalString(utils.PasswordFileFlag.Name)
+	accountPass := strings.TrimSpace(ctx.GlobalString(utils.VoteAccountPasswordFlag.Name))
+	blockPass := strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountPasswordFlag.Name))
 	if accountPass != "" {
 		return accountPass, nil
 	} else if blockPass != "" {
 		return blockPass, nil
-	} else if filePass != "" {
-		return filePass, nil
 	} else {
-		utils.Fatalf("Looked for password via fetchPasswordFromCLI, but no password arguments found.")
+		utils.Fatalf("Looked for password via fetchPasswordFromCLI, but no plaintext password arguments found.")
 		// Program exits before this return, only required to quiet down compiler
 		return "", nil
 	}
@@ -68,11 +64,10 @@ func fetchPasswordFromVault(ctx *cli.Context) (string, error) {
 		if !present {
 			utils.Fatalf("fetchPasswordFromVault found a secret at specified path (%v), but secret did not contain specified key name (%v). Secret was : %v", fullSecretPath, keyname, secret.Data)
 		}
-		return password.(string), nil
-	} else {
-		utils.Fatalf("fetchPasswordFromVault called even though CLI got a password argument.")
-		return "", nil
+		return password.(string)[1 : len(password.(string))-1], nil
 	}
+	utils.Fatalf("fetchPasswordFromVault called even though CLI got a password argument.")
+	return "", nil
 }
 
 func cliVal(ctx *cli.Context)
@@ -92,10 +87,9 @@ func usingVaultPassword(ctx *cli.Context) bool {
 	if len(setPassFlags) > 0 {
 		if len(setPassFlags) == 1 {
 			return false
-		} else {
-			utils.Fatalf("Too many (%v) password flags have been set.  Only one of the following should be supplied: %v", len(setPassFlags), setPassFlags)
-			return false
 		}
+		utils.Fatalf("Too many (%v) password flags have been set.  Only one of the following should be supplied: %v", len(setPassFlags), setPassFlags)
+		return false
 	} else {
 		vaultFlags := map[cli.StringFlag]string{
 			utils.VaultAddrFlag:         strings.TrimSpace(ctx.GlobalString(utils.VaultAddrFlag.Name)),

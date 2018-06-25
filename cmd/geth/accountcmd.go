@@ -185,6 +185,7 @@ func unlockAccount(ctx *cli.Context, accman *accounts.Manager, address string, i
 		prompt := fmt.Sprintf("Unlocking account %s | Attempt %d/%d", address, trials+1, 3)
 		password := getPassPhrase(prompt, false, i, passwords)
 		err = accman.Unlock(account, password)
+		fmt.Println("Trial %v on unlocking acct %x, found pswd %v & err %v", trials, address, password, err)
 		if err == nil {
 			glog.V(logger.Info).Infof("Unlocked account %x", account.Address)
 			return account, password

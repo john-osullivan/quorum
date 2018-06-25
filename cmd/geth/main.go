@@ -279,9 +279,21 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Start up the node itself
 	utils.StartNode(stack)
 
+	// Fetch password either from (1) plaintext pass args, (2) password file arg,
+	// or (3) Vault cred args.
+	var passwords []string
+	if ctx.GlobalIsSet(utils.PasswordFileFlag.Name) {
+		passwords = utils.MakePasswordList(ctx)
+	} else {
+		passwordResult, err := fetchPassword(ctx)
+		if err != nil {
+			utils.Fatalf("Failed to fetch password: %v", err)
+		}
+		passwords = append(passwords, passwordResult)
+	}
+
 	// Unlock any account specifically requested
 	accman := stack.AccountManager()
-	passwords := utils.MakePasswordList(ctx)
 	accounts := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for i, account := range accounts {
 		if trimmed := strings.TrimSpace(account); trimmed != "" {
@@ -305,11 +317,12 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		utils.Fatalf("Unable to attach to node: %v", err)
 	}
 
+	// Perform addt'l unlock steps depending on whether this is a
+	// maker or voter.  Observers are handled by first unlock above.
 	var (
 		voteKey      *ecdsa.PrivateKey
 		blockVoteKey *ecdsa.PrivateKey
 	)
-
 	usingVoterAcct := ctx.GlobalIsSet(utils.VoteAccountFlag.Name)
 	usingBlockMakerAcct := ctx.GlobalIsSet(utils.VoteBlockMakerAccountFlag.Name)
 	if len(accounts) == 0 && !usingVoterAcct && !usingBlockMakerAcct {
@@ -322,13 +335,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		addr = strings.TrimSpace(ctx.GlobalString(utils.VoteBlockMakerAccountFlag.Name))
 	}
 	if usingBlockMakerAcct || usingVoterAcct {
-		var passwd []string
-		fetchedPass, err := fetchPassword(ctx)
-		if err != nil {
-			utils.Fatalf("Unable to fetch account password: %v", err)
-		}
-		passwd = append(passwd, fetchedPass)
-		unlockAccount(ctx, accman, addr, 0, passwd)
+		unlockAccount(ctx, accman, addr, 0, passwords)
 		if usingBlockMakerAcct {
 			blockVoteKey, err = accman.Key(common.HexToAddress(addr[2:]))
 		} else {

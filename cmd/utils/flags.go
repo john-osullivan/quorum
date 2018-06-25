@@ -407,7 +407,7 @@ var (
 	}
 	VaultPasswordNameFlag = cli.StringFlag{
 		Name:  "vaultpasswordname",
-		Usage: "Key name within KV store where password is kept. Canonically set to `geth-pw` in Eximchain",
+		Usage: "Key name within KV store where password is kept. Canonically set to `geth_pw` in Eximchain",
 		Value: "geth_pw",
 	}
 	// Raft flags
