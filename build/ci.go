@@ -131,15 +131,21 @@ func main() {
 // Accepts a version string (e.g. 'go1.4'), returns a boolean
 // describing whether the current runtime version is older than
 // that provided version
-func golangOlderThan(string reqdVersion) bool {
-	reqdVersionNums := strings.split(reqdVersion[2:], '.')
-	currentVersionNums := strings.split(runtime.Version()[2:], '.')
-	for i, num := range reqdVersionNumbers {
+func golangOlderThan(reqdVersion string) bool {
+	reqdVersionNums := strings.Split(reqdVersion[2:], ".")
+	currentVersionNums := strings.Split(runtime.Version()[2:], ".")
+	for i, num := range reqdVersionNums {
 		reqInt, err := strconv.Atoi(num)
+		if err != nil {
+			log.Fatalf("Error converting part of required version number (value was %v) to an int: %v", num, err)
+		}
 		if i >= len(currentVersionNums) {
 			return true
 		}
 		currInt, err := strconv.Atoi(currentVersionNums[i])
+		if err != nil {
+			log.Fatalf("Error converting part of current version number (value was %v) to an int: %v", currentVersionNums[i], err)
+		}
 		if currInt > reqInt {
 			return false
 		} else if currInt < reqInt {
