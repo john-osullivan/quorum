@@ -46,6 +46,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,6 +128,27 @@ func main() {
 	}
 }
 
+// Accepts a version string (e.g. 'go1.4'), returns a boolean
+// describing whether the current runtime version is older than
+// that provided version
+func golangOlderThan(string reqdVersion) bool {
+	reqdVersionNums := strings.split(reqdVersion[2:], '.')
+	currentVersionNums := strings.split(runtime.Version()[2:], '.')
+	for i, num := range reqdVersionNumbers {
+		reqInt, err := strconv.Atoi(num)
+		if i >= len(currentVersionNums) {
+			return true
+		}
+		currInt, err := strconv.Atoi(currentVersionNums[i])
+		if currInt > reqInt {
+			return false
+		} else if currInt < reqInt {
+			return true
+		}
+	}
+	return false
+}
+
 // Compiling
 
 func doInstall(cmdline []string) {
@@ -136,7 +158,7 @@ func doInstall(cmdline []string) {
 	// Check Go version. People regularly open issues about compilation
 	// failure with outdated Go. This should save them the trouble.
 	// Wrote a proper fxn in separate code, removing broken check for dev.
-	if false && !strings.HasPrefix(runtime.Version(), "devel") {
+	if golangOlderThan("go1.4") && !strings.HasPrefix(runtime.Version(), "devel") {
 		log.Println("You have Go version", runtime.Version())
 		log.Println("go-ethereum requires at least Go version 1.4 and cannot")
 		log.Println("be compiled with an earlier version. Please upgrade your Go installation.")
@@ -163,7 +185,7 @@ func buildFlags(env build.Environment) (flags []string) {
 	// is '=' and using ' ' prints a warning. However, Go < 1.5 does
 	// not support using '='.
 	sep := " "
-	if true || strings.Contains(runtime.Version(), "devel") {
+	if !golangOlderThan("go1.5") || strings.Contains(runtime.Version(), "devel") {
 		sep = "="
 	}
 	// Set gitCommit constant via link-time assignment.
